@@ -7,7 +7,7 @@ class Conexion:
     #conexion principal a la plataforma swapi
     url_api = "https://www.swapi.tech/api"
 
-    def __init__(self):
+    def _init_(self):
         pass
     #dependiendo de la informacion se obtiene el url
     def obtener_datos(self, endpoint):
@@ -28,7 +28,7 @@ class Conexion:
 
 
 class Pelicula:
-    def __init__(self, titulo, episodio_id, fecha_lanzamiento, opening_crawl, director):
+    def _init_(self, titulo, episodio_id, fecha_lanzamiento, opening_crawl, director):
         self.titulo = titulo
         self.episodio_id = episodio_id
         self.fecha_lanzamiento = fecha_lanzamiento
@@ -63,7 +63,7 @@ class Pelicula:
 class Species:
     species_ids = {}  # Diccionario para almacenar IDs de especies y sus nombres
 
-    def __init__(self, name, height, classification, homeworld, language, characters, films):
+    def _init_(self, name, height, classification, homeworld, language, characters, films):
         self.name = name
         self.height = height
         self.classification = classification
@@ -146,7 +146,7 @@ class Species:
 
         
 class Planet:
-    def __init__(self, name, rotation_period, orbital_period, population, climate, films, residents):
+    def _init_(self, name, rotation_period, orbital_period, population, climate, films, residents):
         self.name = name
         self.rotation_period = rotation_period
         self.orbital_period = orbital_period
@@ -229,7 +229,7 @@ class Planet:
         print("-" * 40)
 
 class Character:
-    def __init__(self, name, homeworld, gender, species, films, starships, vehicles):
+    def _init_(self, name, homeworld, gender, species, films, starships, vehicles):
         self.name = name
         self.homeworld = homeworld
         self.gender = gender
@@ -313,7 +313,7 @@ class Character:
         print("-" * 40)
 
 class Starship:
-    def __init__(self, name, hyperdrive_rating, mglt, max_atmosphering_speed, cost_in_credits):
+    def _init_(self, name, hyperdrive_rating, mglt, max_atmosphering_speed, cost_in_credits):
         self.name = name
         self.hyperdrive_rating = hyperdrive_rating
         self.mglt = mglt
@@ -339,7 +339,39 @@ class Starship:
             starship_details = client.obtener_datos_individuales(starship['url'])
             starships_list.append(Starship.from_api_data(starship_details['result']['properties']))
         return starships_list
-    
+
+
+#clase de las misiones
+class Mision:
+    def _init_(self, nombre, planeta_destino, nave):
+        self.nombre = nombre
+        self.planeta_destino = planeta_destino
+        self.nave = nave
+        self.armas = []
+        self.integrantes = []
+
+    def agregar_arma(self, arma):
+        if len(self.armas) < 7:
+            self.armas.append(arma)
+        else:
+            print("No se pueden agregar más de 7 armas.")
+
+    def agregar_integrante(self, integrante):
+        if len(self.integrantes) < 7:
+            self.integrantes.append(integrante)
+        else:
+            print("No se pueden agregar más de 7 integrantes.")
+
+    def mostrar_mision(self):
+        print(f"Nombre de la misión: {self.nombre}")
+        print(f"Planeta destino: {self.planeta_destino}")
+        print(f"Nave utilizada: {self.nave}")
+        print("Armas:")
+        for arma in self.armas:
+            print(f" - {arma}")
+        print("Integrantes:")
+        for integrante in self.integrantes:
+            print(f" - {integrante}")
 ##Funciones del menu
 #opcion 1
 def mostrar_lista_peliculas(client):
@@ -587,14 +619,153 @@ def mostrar_estadisticas_naves(client):
     mostrar_estadisticas('Velocidad Máxima en Atmósfera', stats['max_atmosphering_speed'])
     mostrar_estadisticas('Costo en Créditos', stats['cost_in_credits'])
 
+#opcion 8
+def crear_mision():
+    nombre = input("Introduce el nombre de la misión: ")
+    planeta_destino = input("Introduce el nombre del planeta destino: ")
+    nave = input("Introduce el nombre de la nave a utilizar: ")
+
+    mision = Mision(nombre, planeta_destino, nave)
+
+    print("\n--- Selección de armas ---")
+    while len(mision.armas) < 7:
+        arma = input("Introduce el nombre de un arma (o escribe 'fin' para terminar): ")
+        if arma.lower() == 'fin':
+            break
+        mision.agregar_arma(arma)
+
+    print("\n--- Selección de integrantes ---")
+    while len(mision.integrantes) < 7:
+        integrante = input("Introduce el nombre de un integrante (o escribe 'fin' para terminar): ")
+        if integrante.lower() == 'fin':
+            break
+        mision.agregar_integrante(integrante)
+
+    return mision
+
+#opcion 9
+def listar_misiones(misiones):
+    if not misiones:
+        print("No hay misiones disponibles.")
+        return
+
+    print("\n--- Lista de misiones ---")
+    for idx, mision in enumerate(misiones, 1):
+        print(f"{idx}. {mision.nombre} - Destino: {mision.planeta_destino} - Nave: {mision.nave}")
+
+    return int(input("Selecciona el número de la misión que deseas modificar: ")) - 1
+
+def modificar_mision(misiones):
+    if not misiones:
+        print("No hay misiones disponibles para modificar.")
+        return
+
+    idx = listar_misiones(misiones)
+    if idx < 0 or idx >= len(misiones):
+        print("Selección inválida.")
+        return
+
+    mision = misiones[idx]
+    print(f"\n--- Modificando misión: {mision.nombre} ---")
+    
+    while True:
+        print("\n¿Qué te gustaría modificar?")
+        print("1. Nombre de la misión")
+        print("2. Planeta de destino")
+        print("3. Nave")
+        print("4. Armas")
+        print("5. Integrantes")
+        print("6. Salir")
+        opcion = input("Selecciona una opción: ")
+
+        if opcion == '1':
+            modificar_nombre_mision(mision)
+        elif opcion == '2':
+            modificar_planeta_mision(mision)
+        elif opcion == '3':
+            modificar_nave_mision(mision)
+        elif opcion == '4':
+            modificar_armas(mision)
+        elif opcion == '5':
+            modificar_integrantes(mision)
+        elif opcion == '6':
+            break
+        else:
+            print("Opción no válida. Inténtalo de nuevo.")
+
+def modificar_nombre_mision(mision):
+    nuevo_nombre = input("Introduce el nuevo nombre de la misión: ")
+    mision.nombre = nuevo_nombre
+    print(f"Nombre de la misión actualizado a: {mision.nombre}")
+
+def modificar_planeta_mision(mision):
+    nuevo_planeta = input("Introduce el nuevo planeta de destino: ")
+    mision.planeta_destino = nuevo_planeta
+    print(f"Planeta de destino actualizado a: {mision.planeta_destino}")
+
+def modificar_nave_mision(mision):
+    nueva_nave = input("Introduce el nuevo nombre de la nave: ")
+    mision.nave = nueva_nave
+    print(f"Nave actualizada a: {mision.nave}")
+
+def modificar_armas(mision):
+    print("\n--- Armas actuales ---")
+    for idx, arma in enumerate(mision.armas, 1):
+        print(f"{idx}. {arma}")
+    
+    accion = input("¿Te gustaría (A)gregar o (E)liminar un arma? (A/E): ").lower()
+    
+    if accion == 'a':
+        while len(mision.armas) < 7:
+            arma = input("Introduce el nombre del arma (o escribe 'fin' para terminar): ")
+            if arma.lower() == 'fin':
+                break
+            mision.agregar_arma(arma)
+    elif accion == 'e':
+        eliminar_arma(mision)
+
+def eliminar_arma(mision):
+    arma_idx = int(input("Introduce el número del arma que deseas eliminar: ")) - 1
+    if 0 <= arma_idx < len(mision.armas):
+        mision.armas.pop(arma_idx)
+        print("Arma eliminada.")
+    else:
+        print("Selección no válida.")
+
+def modificar_integrantes(mision):
+    print("\n--- Integrantes actuales ---")
+    for idx, integrante in enumerate(mision.integrantes, 1):
+        print(f"{idx}. {integrante}")
+    
+    accion = input("¿Te gustaría (A)gregar o (E)liminar un integrante? (A/E): ").lower()
+    
+    if accion == 'a':
+        while len(mision.integrantes) < 7:
+            integrante = input("Introduce el nombre del integrante (o escribe 'fin' para terminar): ")
+            if integrante.lower() == 'fin':
+                break
+            mision.agregar_integrante(integrante)
+    elif accion == 'e':
+        eliminar_integrante(mision)
+
+def eliminar_integrante(mision):
+    integrante_idx = int(input("Introduce el número del integrante que deseas eliminar: ")) - 1
+    if 0 <= integrante_idx < len(mision.integrantes):
+        mision.integrantes.pop(integrante_idx)
+        print("Integrante eliminado.")
+    else:
+        print("Selección no válida.")
+
 #Aqui definiremos el menu principal
+misiones = [] 
 def menu():
-    print("**************************************************")
-    print("**************************************************")
+    global misiones
+    print("")
+    print("")
     print("***************** STAR WAR ***********************")
     print("**************** METROPEDIA **********************")
-    print("**************************************************")
-    print("**************************************************")
+    print("")
+    print("")
     print("Bienvenido a este maravilloso mundo donde veremos si la fuerza esta dentro de ti")
     print("En nuestra metropedia podrás realizar las siguientes acciones:")
     print("1. Lista de peliculas de la saga")
@@ -645,11 +816,17 @@ def menu():
             mostrar_estadisticas_naves(client)
             menu()
         elif opcion=="8":
-            print(opcion)
-            return True
+            mision = crear_mision()
+            misiones.append(mision)
+            print("\n--- Detalles de la misión ---")
+            mision.mostrar_mision()
+            menu()
         elif opcion=="9":
-            print(opcion)
-            return True
+            if misiones:
+                    modificar_mision(misiones)
+            else:
+                print("No hay misiones disponibles para modificar.")
+            menu()
         elif opcion=="10":
             print(opcion)
             return True
