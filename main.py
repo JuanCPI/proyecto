@@ -7,7 +7,7 @@ class Conexion:
     #conexion principal a la plataforma swapi
     url_api = "https://www.swapi.tech/api"
 
-    def _init_(self):
+    def __init__(self):
         pass
     #dependiendo de la informacion se obtiene el url
     def obtener_datos(self, endpoint):
@@ -28,7 +28,7 @@ class Conexion:
 
 
 class Pelicula:
-    def _init_(self, titulo, episodio_id, fecha_lanzamiento, opening_crawl, director):
+    def __init__(self, titulo, episodio_id, fecha_lanzamiento, opening_crawl, director):
         self.titulo = titulo
         self.episodio_id = episodio_id
         self.fecha_lanzamiento = fecha_lanzamiento
@@ -63,7 +63,7 @@ class Pelicula:
 class Species:
     species_ids = {}  # Diccionario para almacenar IDs de especies y sus nombres
 
-    def _init_(self, name, height, classification, homeworld, language, characters, films):
+    def __init__(self, name, height, classification, homeworld, language, characters, films):
         self.name = name
         self.height = height
         self.classification = classification
@@ -146,7 +146,7 @@ class Species:
 
         
 class Planet:
-    def _init_(self, name, rotation_period, orbital_period, population, climate, films, residents):
+    def __init__(self, name, rotation_period, orbital_period, population, climate, films, residents):
         self.name = name
         self.rotation_period = rotation_period
         self.orbital_period = orbital_period
@@ -229,7 +229,7 @@ class Planet:
         print("-" * 40)
 
 class Character:
-    def _init_(self, name, homeworld, gender, species, films, starships, vehicles):
+    def __init__(self, name, homeworld, gender, species, films, starships, vehicles):
         self.name = name
         self.homeworld = homeworld
         self.gender = gender
@@ -313,7 +313,7 @@ class Character:
         print("-" * 40)
 
 class Starship:
-    def _init_(self, name, hyperdrive_rating, mglt, max_atmosphering_speed, cost_in_credits):
+    def __init__(self, name, hyperdrive_rating, mglt, max_atmosphering_speed, cost_in_credits):
         self.name = name
         self.hyperdrive_rating = hyperdrive_rating
         self.mglt = mglt
@@ -343,7 +343,7 @@ class Starship:
 
 #clase de las misiones
 class Mision:
-    def _init_(self, nombre, planeta_destino, nave):
+    def __init__(self, nombre, planeta_destino, nave):
         self.nombre = nombre
         self.planeta_destino = planeta_destino
         self.nave = nave
@@ -654,7 +654,16 @@ def listar_misiones(misiones):
         print(f"{idx}. {mision.nombre} - Destino: {mision.planeta_destino} - Nave: {mision.nave}")
 
     return int(input("Selecciona el número de la misión que deseas modificar: ")) - 1
+def listar_misiones2(misiones):
+    if not misiones:
+        print("No hay misiones disponibles.")
+        return
 
+    print("\n--- Lista de misiones ---")
+    for idx, mision in enumerate(misiones, 1):
+        print(f"{idx}. {mision.nombre} - Destino: {mision.planeta_destino} - Nave: {mision.nave}")
+
+    return int(input("Selecciona el número de la misión que deseas visualizar: ")) - 1
 def modificar_mision(misiones):
     if not misiones:
         print("No hay misiones disponibles para modificar.")
@@ -756,93 +765,209 @@ def eliminar_integrante(mision):
     else:
         print("Selección no válida.")
 
+#opcion 10
+def visualizar_mision(misiones):
+    if not misiones:
+        print("No hay misiones disponibles para visualizar.")
+        return
+
+    idx = listar_misiones2(misiones)
+    if idx < 0 or idx >= len(misiones):
+        print("Selección inválida.")
+        return
+
+    mision = misiones[idx]
+    print(f"\n--- Detalles de la misión: {mision.nombre} ---")
+    print(f"Planeta de destino: {mision.planeta_destino}")
+    print(f"Nave: {mision.nave}")
+    print("\nArmas:")
+    if mision.armas:
+        for idx, arma in enumerate(mision.armas, 1):
+            print(f"{idx}. {arma}")
+    else:
+        print("No se han asignado armas a esta misión.")
+    
+    print("\nIntegrantes:")
+    if mision.integrantes:
+        for idx, integrante in enumerate(mision.integrantes, 1):
+            print(f"{idx}. {integrante}")
+    else:
+        print("No se han asignado integrantes a esta misión.")
+#opcion 11
+def guardar_misiones(misiones, archivo="misiones_guardadas.txt"):
+    if not misiones:
+        print("No hay misiones disponibles para guardar.")
+        return
+
+    with open(archivo, 'w') as file:
+        for mision in misiones:
+            file.write(f"Nombre de la misión: {mision.nombre}\n")
+            file.write(f"Planeta de destino: {mision.planeta_destino}\n")
+            file.write(f"Nave: {mision.nave}\n")
+            
+            file.write("Armas:\n")
+            if mision.armas:
+                for arma in mision.armas:
+                    file.write(f"  - {arma}\n")
+            else:
+                file.write("  No se han asignado armas a esta misión.\n")
+            
+            file.write("Integrantes:\n")
+            if mision.integrantes:
+                for integrante in mision.integrantes:
+                    file.write(f"  - {integrante}\n")
+            else:
+                file.write("  No se han asignado integrantes a esta misión.\n")
+            
+            file.write("\n" + "="*50 + "\n\n")
+    
+    print(f"Misiones guardadas exitosamente en el archivo '{archivo}'.")
+    
+#Opcion12
+def cargar_misiones(archivo="misiones_guardadas.txt"):
+    misiones_cargadas = []
+
+    try:
+        with open(archivo, 'r') as file:
+            contenido = file.read().strip()
+            bloques_mision = contenido.split("\n" + "="*50 + "\n\n")
+
+            for bloque in bloques_mision:
+                lineas = bloque.strip().split("\n")
+                
+                nombre_mision = lineas[0].split(": ")[1].strip()
+                planeta_destino = lineas[1].split(": ")[1].strip()
+                nave = lineas[2].split(": ")[1].strip()
+                
+                # Crear una nueva instancia de Mision
+                mision = Mision(nombre_mision, planeta_destino, nave)
+                
+                # Cargar armas
+                indice_armas = lineas.index("Armas:") + 1
+                while indice_armas < len(lineas) and not lineas[indice_armas].startswith("Integrantes:"):
+                    arma = lineas[indice_armas].strip().replace("  - ", "")
+                    if arma:
+                        mision.agregar_arma(arma)
+                    indice_armas += 1
+
+                # Cargar integrantes
+                indice_integrantes = lineas.index("Integrantes:") + 1
+                while indice_integrantes < len(lineas):
+                    integrante = lineas[indice_integrantes].strip().replace("  - ", "")
+                    if integrante:
+                        mision.agregar_integrante(integrante)
+                    indice_integrantes += 1
+
+                misiones_cargadas.append(mision)
+
+        print(f"Misiones cargadas exitosamente desde el archivo '{archivo}'.")
+        return misiones_cargadas
+
+    except FileNotFoundError:
+        print(f"El archivo '{archivo}' no existe. No se pueden cargar misiones.")
+    except Exception as e:
+        print(f"Se produjo un error al cargar las misiones: {e}")
+    
+    return misiones_cargadas
 #Aqui definiremos el menu principal
 misiones = [] 
 def menu():
-    global misiones
-    print("")
-    print("")
-    print("***************** STAR WAR ***********************")
-    print("**************** METROPEDIA **********************")
-    print("")
-    print("")
-    print("Bienvenido a este maravilloso mundo donde veremos si la fuerza esta dentro de ti")
-    print("En nuestra metropedia podrás realizar las siguientes acciones:")
-    print("1. Lista de peliculas de la saga")
-    print("2. Lista de las especies de seres vivos de la saga")
-    print("3. Lista de planetas")
-    print("4. Buscar Personaje")
-    print("5. Grafico de cantidad de personajes nacidos en cada planeta")
-    print("6. Graficos de caracteristicas de naves")
-    print("7. Estadisticas sobre naves")
-    print("8. Construir mision")
-    print("9. Visualizar mision")
-    print("10. Guardar misiones")
-    print("11. Cargar misiones")
-    print("12. Salir del programa")
-    opcion=input("Escoga el número de la opcion correcta:\n")
+    while True:
+        global misiones
+        print("**************************************************")
+        print("**************************************************")
+        print("***************** STAR WAR ***********************")
+        print("**************** METROPEDIA **********************")
+        print("**************************************************")
+        print("**************************************************")
+        print("Bienvenido a este maravilloso mundo donde veremos si la fuerza esta dentro de ti")
+        print("En nuestra metropedia podrás realizar las siguientes acciones:")
+        print("1. Lista de peliculas de la saga")
+        print("2. Lista de las especies de seres vivos de la saga")
+        print("3. Lista de planetas")
+        print("4. Buscar Personaje")
+        print("5. Grafico de cantidad de personajes nacidos en cada planeta")
+        print("6. Graficos de caracteristicas de naves")
+        print("7. Estadisticas sobre naves")
+        print("8. Construir misión")
+        print("9. Modificar misión")
+        print("10. Visualizar misión")
+        print("11. Guardar misiones")
+        print("12. Cargar misiones")
+        print("13. Salir del programa")
+        opcion=input("Escoga el número de la opcion correcta:\n")
 
-    #funcion que verifica la respuesta del usuario, si no es una opcion valida lo devuelve al menu
+        #funcion que verifica la respuesta del usuario, si no es una opcion valida lo devuelve al menu
 
-    if opcion.isnumeric():
-        if opcion == "1":
-            print("Espere un poco por favor...")
-            mostrar_lista_peliculas(client)
-            menu()
-        elif opcion=="2":
-            print("Espere un poco por favor...")
-            mostrar_lista_especies(client)
-            menu()
-        elif opcion=="3":
-            print("Espere un poco por favor...")
-            mostrar_lista_planetas(client)
-            menu()
-        elif opcion=="4":
-            print("Espere un poco por favor...")
-            buscar_personaje(client)
-            menu()
-        elif opcion=="5":
-            print("Espere un poco por favor...")
-            obtener_personajes_por_planeta(client)
-            graficar_personajes_por_planeta()
-            # opcion_5(client)
-            menu()
-        elif opcion=="6":
-            datos_naves = obtener_datos_naves(client)
-            graficar_caracteristicas_naves(datos_naves)
-            menu()
-        elif opcion=="7":
-            print("Espere un poco por favor...")
-            mostrar_estadisticas_naves(client)
-            menu()
-        elif opcion=="8":
-            mision = crear_mision()
-            misiones.append(mision)
-            print("\n--- Detalles de la misión ---")
-            mision.mostrar_mision()
-            menu()
-        elif opcion=="9":
-            if misiones:
+        if opcion.isnumeric():
+            if opcion == "1":
+                print("Espere un poco por favor...")
+                mostrar_lista_peliculas(client)
+                menu()
+            elif opcion=="2":
+                print("Espere un poco por favor...")
+                mostrar_lista_especies(client)
+                menu()
+            elif opcion=="3":
+                print("Espere un poco por favor...")
+                mostrar_lista_planetas(client)
+                menu()
+            elif opcion=="4":
+                print("Espere un poco por favor...")
+                buscar_personaje(client)
+                menu()
+            elif opcion=="5":
+                print("Espere un poco por favor...")
+                obtener_personajes_por_planeta(client)
+                graficar_personajes_por_planeta()
+                # opcion_5(client)
+                menu()
+            elif opcion=="6":
+                datos_naves = obtener_datos_naves(client)
+                graficar_caracteristicas_naves(datos_naves)
+                menu()
+            elif opcion=="7":
+                print("Espere un poco por favor...")
+                mostrar_estadisticas_naves(client)
+                menu()
+            elif opcion=="8":
+                mision = crear_mision()
+                misiones.append(mision)
+                print("\n--- Detalles de la misión ---")
+                mision.mostrar_mision()
+                menu()
+            elif opcion=="9":
+                if misiones:
                     modificar_mision(misiones)
+                else:
+                    print("No hay misiones disponibles para modificar.")
+                menu()
+            elif opcion=="10":
+                if misiones:
+                    visualizar_mision(misiones)
+                else:
+                    print("No hay misiones disponibles para visualizar.")
+                menu()
+            elif opcion=="11":
+                guardar_misiones(misiones)
+                menu()
+            elif opcion=="12":
+                misiones_cargadas = cargar_misiones()
+                if misiones_cargadas:
+                    misiones = misiones_cargadas  # Reemplaza las misiones en memoria con las cargadas
+                else:
+                    print("No se cargaron nuevas misiones.")
+                menu()
+            elif opcion=="13":
+                print("Saliendo del metropedia...Vuelva pronto")
+                exit()
             else:
-                print("No hay misiones disponibles para modificar.")
-            menu()
-        elif opcion=="10":
-            print(opcion)
-            return True
-        elif opcion=="11":
-            print(opcion)
-            return True
-        elif opcion=="12":
-            print(opcion)
-            return True
+                print("Debe seleccionar un numero del 1 al 10, vuelva a intentar")
+                menu()
         else:
             print("Debe seleccionar un numero del 1 al 10, vuelva a intentar")
             menu()
-    else:
-        print("Debe seleccionar un numero del 1 al 10, vuelva a intentar")
-        menu()
-    
+        
 # Crear un cliente SWAPI
 client = Conexion() 
 menu()
