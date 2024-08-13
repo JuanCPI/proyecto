@@ -1,8 +1,9 @@
-import requests
-import matplotlib.pyplot as plt
-import csv
-import statistics
+import requests  #libreria para usar las apis
+import matplotlib.pyplot as plt #libreria que te ayuda a graficar
+import csv #libreria que te ayuda a trabajar con csv
+import statistics # libreria que te ayuda a sacar estadisticas
 
+#Clase que realiza la conexion a distintas apis del Swapi
 class Conexion:
     #conexion principal a la plataforma swapi
     url_api = "https://www.swapi.tech/api"
@@ -10,23 +11,26 @@ class Conexion:
     def __init__(self):
         pass
     #dependiendo de la informacion se obtiene el url
+    #se recibe el endpoint que se quiera utilizar
     def obtener_datos(self, endpoint):
         url = f"{self.url_api}/{endpoint}"
         response = requests.get(url)
+        #verificamos que hacemos la conexion
         if response.status_code == 200:
             return response.json().get('result', {}).get('properties', {})
         else:
             raise Exception(f"No se pudo realizar la conexion {url}: {response.status_code}")
-
+    #hay que tener en cuenta que los resultados de las apis tienen "results" "result"
     def obtener_todos_datos(self, endpoint, key='results'):
         url = f"{self.url_api}/{endpoint}"
         response = requests.get(url)
+        #verificamos que hacemos la conexion
         if response.status_code == 200:
             return response.json().get(key, [])
         else:
             raise Exception(f"No se pudo realizar la conexión {url}: {response.status_code}")
 
-
+#Definimos la clase pelicula segun el enunciado
 class Pelicula:
     def __init__(self, titulo, episodio_id, fecha_lanzamiento, opening_crawl, director):
         self.titulo = titulo
@@ -34,7 +38,8 @@ class Pelicula:
         self.fecha_lanzamiento = fecha_lanzamiento
         self.opening_crawl = opening_crawl
         self.director = director
-
+    
+    #aqui empleamos los metodos a utilizar en la clase
     @classmethod
     def from_api_data(cls, data):
         return cls(
@@ -46,11 +51,11 @@ class Pelicula:
         )
 
     @staticmethod
-    def list_films(client):
+    def lista_peliculas(client):
         films_data = client.obtener_todos_datos('films','result')
         films = [Pelicula.from_api_data(film['properties']) for film in films_data]
         return films
-
+    #forma en que se imprime las peliculas 
     def mostrar_film(self):
         print(f"Titulo: {self.titulo}")
         print(f"Número episodio: {self.episodio_id}")
@@ -59,7 +64,7 @@ class Pelicula:
         print(f"Director: {self.director}")
         print("-" * 40)
         
-        
+#Definimos la clase Species segun el enunciado        
 class Species:
     species_ids = {}  # Diccionario para almacenar IDs de especies y sus nombres
 
@@ -136,7 +141,7 @@ class Species:
     
     def mostrar_especie(self):
         print(f"Nombre: {self.name}")
-        print(f"Altura: {self.height}")
+        print(f"Altura: {self.height} cm")
         print(f"Clasificación: {self.classification}")
         print(f"Nombre planeta de origen: {self.homeworld}")
         print(f"Lengua materna: {self.language}")
@@ -144,7 +149,7 @@ class Species:
         print(f"Episodios en los que aparecen: {', '.join(self.films)}")
         print("-" * 40)
 
-        
+#Definimos la clase Planet segun el enunciado       
 class Planet:
     def __init__(self, name, rotation_period, orbital_period, population, climate, films, residents):
         self.name = name
@@ -156,65 +161,42 @@ class Planet:
         self.residents = residents
 
     @classmethod
-    def from_api_data(cls, data, film_titles_dict, character_names_dict):
-        # Obtener los nombres de las películas
-        film_titles = [film_titles_dict.get(film_url, "Desconocido") for film_url in data.get('films', [])]
+    def from_api_data(cls, data, client):
+        film_titles = []
+        for film_url in data.get('films', []):
+            film_data = client.obtener_datos(film_url.replace(client.url_api + '/', ''))
+            if isinstance(film_data, dict) and 'result' in film_data and 'properties' in film_data['result']:
+                film_titles.append(film_data['result']['properties'].get('title', 'Desconocido'))
 
-        # Obtener los nombres de los personajes
-        resident_names = [character_names_dict.get(resident_url, "Desconocido") for resident_url in data.get('residents', [])]
+        resident_names = []
+        for resident_url in data.get('residents', []):
+            resident_data = client.obtener_datos(resident_url.replace(client.url_api + '/', ''))
+            if isinstance(resident_data, dict) and 'result' in resident_data and 'properties' in resident_data['result']:
+                resident_names.append(resident_data['result']['properties'].get('name', 'Desconocido'))
 
         return cls(
-            name=data.get('name'),
-            rotation_period=data.get('rotation_period'),
-            orbital_period=data.get('orbital_period'),
-            population=data.get('population'),
-            climate=data.get('climate'),
+            name=data.get('name', 'Desconocido'),
+            rotation_period=data.get('rotation_period', 'N/A'),
+            orbital_period=data.get('orbital_period', 'N/A'),
+            population=data.get('population', 'N/A'),
+            climate=data.get('climate', 'N/A'),
             films=film_titles,
             residents=resident_names
         )
 
     @staticmethod
     def list_planets(client):
-        # Cargar todas las películas y personajes en diccionarios para acceso rápido
-        films_data = client.obtener_todos_datos('films', 'result')
-        characters_data = client.obtener_todos_datos('people', 'results')
-
-        # Verificar si se obtuvieron datos
-        print("Datos de películas obtenidos:", films_data)
-        print("Datos de personajes obtenidos:", characters_data)
-
-        # Crear diccionarios de títulos de películas y nombres de personajes
-        film_titles_dict = {}
-        for film in films_data:
-            if 'properties' in film:
-                film_titles_dict[film['properties']['url']] = film['properties']['title']
-
-        character_names_dict = {}
-        for character in characters_data:
-            if 'url' in character:
-                character_details = client.obtener_datos(f'people/{character["uid"]}')
-                if 'result' in character_details and 'properties' in character_details['result']:
-                    character_names_dict[character['url']] = character_details['result']['properties']['name']
-
-        # Verificar diccionarios creados
-        print("Diccionario de títulos de películas:", film_titles_dict)
-        print("Diccionario de nombres de personajes:", character_names_dict)
-
-        # Cargar los datos de los planetas y asociar las películas y personajes
         planets_data = client.obtener_todos_datos('planets', 'results')
         planets_list = []
 
-        # Verificar datos de planetas
-        print("Datos de planetas obtenidos:", planets_data)
-
         for planet in planets_data:
-            planet_details = client.obtener_datos(f'planets/{planet["uid"]}')
-            if 'result' in planet_details and 'properties' in planet_details['result']:
-                planet_obj = Planet.from_api_data(planet_details['result']['properties'], film_titles_dict, character_names_dict)
+            planet_url = planet['url'].replace(client.url_api + '/', '')
+            planet_details = client.obtener_datos(planet_url)
+            if isinstance(planet_details, dict):
+                planet_obj = Planet.from_api_data(planet_details, client)
                 planets_list.append(planet_obj)
-
-        # Verificar lista de planetas
-        print("Lista de planetas procesados:", planets_list)
+            else:
+                print(f"Advertencia: No se pudo obtener detalles para el planeta {planet['name']}")
 
         return planets_list
 
@@ -227,7 +209,8 @@ class Planet:
         print(f"Episodios en los que aparece: {', '.join(self.films) if self.films else 'N/A'}")
         print(f"Personajes originarios: {', '.join(self.residents) if self.residents else 'N/A'}")
         print("-" * 40)
-
+        
+#Definimos la clase Character segun el enunciado
 class Character:
     def __init__(self, name, homeworld, gender, species, films, starships, vehicles):
         self.name = name
@@ -311,7 +294,7 @@ class Character:
         print(f"Nombre de las naves que utiliza: {', '.join(self.starships) if self.starships else 'N/A'}")
         print(f"Nombre de los vehículos que utiliza: {', '.join(self.vehicles) if self.vehicles else 'N/A'}")
         print("-" * 40)
-
+#Definimos la clase Starship (nave) segun el enunciado
 class Starship:
     def __init__(self, name, hyperdrive_rating, mglt, max_atmosphering_speed, cost_in_credits):
         self.name = name
@@ -372,27 +355,38 @@ class Mision:
         print("Integrantes:")
         for integrante in self.integrantes:
             print(f" - {integrante}")
+            
 ##Funciones del menu
-#opcion 1
+# aqui se colocaran las funciones principales que involucran los metodos de las clases
+######################################################################################
+#opcion 1: 
 def mostrar_lista_peliculas(client):
-    peliculas = Pelicula.list_films(client)
+    peliculas = Pelicula.lista_peliculas(client)
     print("\n*** Lista de Películas de la Saga Star Wars ***\n")
     for pelicula in peliculas:
         pelicula.mostrar_film()
-#opcion 2
+######################################################################################        
+#opcion 2:
 def mostrar_lista_especies(client):
     especies = Species.list_species(client)
     print("\n*** Lista de Especies de la Saga Star Wars ***\n")
     for especie in especies:
         especie.mostrar_especie()
-        
-# Opción 3 del menú
+######################################################################################       
+# Opción 3 del menú:
 def mostrar_lista_planetas(client):
-    planetas = Planet.list_planets(client)
-    print("\n*** Lista de Planetas de la Saga Star Wars ***\n")
-    for planeta in planetas:
-        planeta.mostrar_planeta()       
-# Opción 4 del menú     
+    try:
+        planetas = Planet.list_planets(client)
+        print("\n*** Lista de Planetas de la Saga Star Wars ***\n")
+        if not planetas:
+            print("No se encontraron planetas.")
+            return
+        for planeta in planetas:
+            planeta.mostrar_planeta()
+    except Exception as e:
+        print(f"Se produjo un error al mostrar la lista de planetas: {e}")
+######################################################################################   
+# Opción 4 del menú:   
 def buscar_personaje(client):
     query = input("Ingrese el nombre o parte del nombre del personaje que desea buscar:\n")
     personajes = Character.search_character(client, query)
@@ -404,7 +398,8 @@ def buscar_personaje(client):
     else:
         print(f"\nNo se encontraron personajes que coincidan con '{query}'.\n")
         
-# Opcion5 del menu()
+######################################################################################
+# Opcion5 del menu:
 def obtener_personajes_por_planeta(client):
     # Obtener todos los personajes
     characters_data = client.obtener_todos_datos('people', 'results')
@@ -450,6 +445,7 @@ def graficar_personajes_por_planeta(client):
 def opcion_5(client):
     print("Generando gráfico de cantidad de personajes nacidos en cada planeta...")
     graficar_personajes_por_planeta(client)       
+    
 def exportar_datos_csv(planet_counts, filename='personajes_por_planeta.csv'):
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
@@ -510,115 +506,180 @@ def graficar_personajes_por_planeta():
     plt.xticks(rotation=90)
     plt.tight_layout()  # Ajusta el diseño para evitar el recorte de etiquetas
     plt.show()   
-
+######################################################################################
 #opcion 6
-def obtener_datos_naves(client):
-    starships = Starship.list_starships(client)
-    datos = {
-        'nombre': [],
-        'longitud': [],
-        'capacidad_carga': [],
-        'clasificacion_hiperimpulsor': [],
-        'mglt': []
-    }
+def preparar_datos_naves(starships):
+    nombres = []
+    longitudes = []
+    capacidades_carga = []
+    clasificaciones_hiperimpulsor = []
+    mglt_values = []
     
-    for nave in starships:
-        datos['nombre'].append(nave.name)
-        datos['longitud'].append(float(nave.length) if nave.length != 'N/A' else 0)
-        datos['capacidad_carga'].append(float(nave.cargo_capacity) if nave.cargo_capacity != 'N/A' else 0)
-        datos['clasificacion_hiperimpulsor'].append(float(nave.hyperdrive_rating) if nave.hyperdrive_rating != 'N/A' else 0)
-        datos['mglt'].append(float(nave.mglt) if nave.mglt != 'N/A' else 0)
+    for starship in starships:
+        nombres.append(starship['name'])
+        
+        if starship['length'] != 'unknown':
+            try:
+                longitudes.append(float(starship['length'].replace(',', '')))
+            except ValueError:
+                longitudes.append(0)
+        else:
+            longitudes.append(0)
+
+        if starship['cargo_capacity'] != 'unknown':
+            try:
+                capacidades_carga.append(float(starship['cargo_capacity'].replace(',', '')))
+            except ValueError:
+                capacidades_carga.append(0)
+        else:
+            capacidades_carga.append(0)
+        
+        if starship['hyperdrive_rating'] != 'unknown':
+            try:
+                clasificaciones_hiperimpulsor.append(float(starship['hyperdrive_rating']))
+            except ValueError:
+                clasificaciones_hiperimpulsor.append(0)
+        else:
+            clasificaciones_hiperimpulsor.append(0)
+        
+        if starship['MGLT'] != 'unknown':
+            try:
+                mglt_values.append(float(starship['MGLT']))
+            except ValueError:
+                mglt_values.append(0)
+        else:
+            mglt_values.append(0)
     
-    return datos
+    return nombres, longitudes, capacidades_carga, clasificaciones_hiperimpulsor, mglt_values
 
-def graficar_caracteristicas_naves(datos):
-    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+# Función para generar los gráficos
+def graficar_caracteristicas_naves():
+    starships = obtener_datos_naves()
+    nombres, longitudes, capacidades_carga, clasificaciones_hiperimpulsor, mglt_values = preparar_datos_naves(starships)
 
-    # Gráfico de Longitud
-    axs[0, 0].barh(datos['nombre'], datos['longitud'], color='blue')
-    axs[0, 0].set_title('Longitud de la Nave')
-    axs[0, 0].set_xlabel('Longitud (metros)')
+    plt.figure(figsize=(10, 8))
+
+    # Gráfico de Longitud de las Naves
+    plt.subplot(2, 2, 1)
+    plt.barh(nombres, longitudes, color='skyblue')
+    plt.xlabel('Longitud')
+    plt.title('Longitud de las Naves')
 
     # Gráfico de Capacidad de Carga
-    axs[0, 1].barh(datos['nombre'], datos['capacidad_carga'], color='green')
-    axs[0, 1].set_title('Capacidad de Carga')
-    axs[0, 1].set_xlabel('Capacidad de Carga (kg)')
+    plt.subplot(2, 2, 2)
+    plt.barh(nombres, capacidades_carga, color='lightgreen')
+    plt.xlabel('Capacidad de Carga')
+    plt.title('Capacidad de Carga de las Naves')
 
     # Gráfico de Clasificación de Hiperimpulsor
-    axs[1, 0].barh(datos['nombre'], datos['clasificacion_hiperimpulsor'], color='red')
-    axs[1, 0].set_title('Clasificación de Hiperimpulsor')
-    axs[1, 0].set_xlabel('Clasificación de Hiperimpulsor')
+    plt.subplot(2, 2, 3)
+    plt.barh(nombres, clasificaciones_hiperimpulsor, color='lightcoral')
+    plt.xlabel('Clasificación de Hiperimpulsor')
+    plt.title('Clasificación de Hiperimpulsor de las Naves')
 
     # Gráfico de MGLT
-    axs[1, 1].barh(datos['nombre'], datos['mglt'], color='purple')
-    axs[1, 1].set_title('MGLT')
-    axs[1, 1].set_xlabel('MGLT')
+    plt.subplot(2, 2, 4)
+    plt.barh(nombres, mglt_values, color='gold')
+    plt.xlabel('MGLT')
+    plt.title('MGLT de las Naves')
 
     plt.tight_layout()
     plt.show()
-#opcion 7
-def calcular_estadisticas(starships):
+    
+######################################################################################   
+#opcion7:
+# Obtener todos los datos de las naves espaciales desde la API
+def obtener_datos_naves():
+    starships = []
+    url = "https://swapi.dev/api/starships/"
+    
+    while url:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            starships.extend(data['results'])
+            url = data['next']
+        else:
+            print(f"Error al obtener la lista de naves: {response.status_code}")
+            break
+    
+    return starships
+
+# Calcular estadísticas globales de las naves espaciales
+def calcular_estadisticas_globales(starships):
     hyperdrive_ratings = []
     mglt_values = []
     max_speeds = []
     costs = []
     
     for starship in starships:
-        if starship.hyperdrive_rating != 'N/A':
+        # Recopilar datos relevantes
+        if starship['hyperdrive_rating'] != 'unknown':
             try:
-                hyperdrive_ratings.append(float(starship.hyperdrive_rating))
+                hyperdrive_ratings.append(float(starship['hyperdrive_rating']))
             except ValueError:
                 continue
-        if starship.mglt != 'N/A':
+        if starship['MGLT'] != 'unknown':
             try:
-                mglt_values.append(float(starship.mglt))
+                mglt_values.append(float(starship['MGLT']))
             except ValueError:
                 continue
-        if starship.max_atmosphering_speed != 'N/A':
+        if starship['max_atmosphering_speed'] != 'unknown':
             try:
-                max_speeds.append(float(starship.max_atmosphering_speed))
+                max_speeds.append(float(starship['max_atmosphering_speed']))
             except ValueError:
                 continue
-        if starship.cost_in_credits != 'N/A':
+        if starship['cost_in_credits'] != 'unknown':
             try:
-                costs.append(float(starship.cost_in_credits))
+                costs.append(float(starship['cost_in_credits']))
             except ValueError:
                 continue
-
-    def calcular_datos(datos):
-        return {
-            'promedio': statistics.mean(datos) if datos else 'N/A',
-            'moda': statistics.mode(datos) if datos else 'N/A',
-            'maximo': max(datos, default='N/A'),
-            'minimo': min(datos, default='N/A')
-        }
-
+    
+    # Calcular estadísticas básicas globales
     return {
         'hyperdrive_rating': calcular_datos(hyperdrive_ratings),
         'mglt': calcular_datos(mglt_values),
         'max_atmosphering_speed': calcular_datos(max_speeds),
         'cost_in_credits': calcular_datos(costs)
     }
-    
-def mostrar_estadisticas_naves(client):
-    starships = Starship.list_starships(client)
-    stats = calcular_estadisticas(starships)
-    
-    print("\n*** Estadísticas de Naves Espaciales ***\n")
-    
-    def mostrar_estadisticas(variable_name, stats):
-        print(f"{variable_name.capitalize()}:")
-        print(f"  Promedio: {stats['promedio']}")
-        print(f"  Moda: {stats['moda']}")
-        print(f"  Máximo: {stats['maximo']}")
-        print(f"  Mínimo: {stats['minimo']}")
-        print("-" * 40)
-    
-    mostrar_estadisticas('Clasificación de Hiperimpulsor', stats['hyperdrive_rating'])
-    mostrar_estadisticas('MGLT', stats['mglt'])
-    mostrar_estadisticas('Velocidad Máxima en Atmósfera', stats['max_atmosphering_speed'])
-    mostrar_estadisticas('Costo en Créditos', stats['cost_in_credits'])
 
+# Función para calcular el promedio, moda, máximo y mínimo
+def calcular_datos(datos):
+    resultado = {
+        'promedio': statistics.mean(datos) if datos else 'N/A',
+        'maximo': max(datos, default='N/A'),
+        'minimo': min(datos, default='N/A')
+    }
+
+    try:
+        resultado['moda'] = statistics.mode(datos)
+    except statistics.StatisticsError:
+        resultado['moda'] = 'No hay un modo único'
+
+    return resultado
+
+# Mostrar estadísticas globales de las naves espaciales
+def mostrar_estadisticas_naves():
+    starships = obtener_datos_naves()
+    stats_globales = calcular_estadisticas_globales(starships)
+    
+    print("\n*** Estadísticas Globales de Naves Espaciales ***\n")
+    
+    mostrar_estadisticas('Clasificación de Hiperimpulsor', stats_globales['hyperdrive_rating'])
+    mostrar_estadisticas('MGLT', stats_globales['mglt'])
+    mostrar_estadisticas('Velocidad Máxima en Atmósfera', stats_globales['max_atmosphering_speed'])
+    mostrar_estadisticas('Costo en Créditos', stats_globales['cost_in_credits'])
+
+# Función para mostrar estadísticas
+def mostrar_estadisticas(variable_name, stats):
+    print(f"{variable_name.capitalize()}:")
+    print(f"  Promedio: {stats['promedio']}")
+    print(f"  Moda: {stats['moda']}")
+    print(f"  Máximo: {stats['maximo']}")
+    print(f"  Mínimo: {stats['minimo']}")
+    print("-" * 40)
+   
+######################################################################################
 #opcion 8
 def crear_mision():
     nombre = input("Introduce el nombre de la misión: ")
@@ -642,7 +703,7 @@ def crear_mision():
         mision.agregar_integrante(integrante)
 
     return mision
-
+######################################################################################
 #opcion 9
 def listar_misiones(misiones):
     if not misiones:
@@ -764,7 +825,9 @@ def eliminar_integrante(mision):
         print("Integrante eliminado.")
     else:
         print("Selección no válida.")
+        
 
+######################################################################################
 #opcion 10
 def visualizar_mision(misiones):
     if not misiones:
@@ -793,6 +856,9 @@ def visualizar_mision(misiones):
             print(f"{idx}. {integrante}")
     else:
         print("No se han asignado integrantes a esta misión.")
+    
+
+######################################################################################
 #opcion 11
 def guardar_misiones(misiones, archivo="misiones_guardadas.txt"):
     if not misiones:
@@ -823,6 +889,8 @@ def guardar_misiones(misiones, archivo="misiones_guardadas.txt"):
     
     print(f"Misiones guardadas exitosamente en el archivo '{archivo}'.")
     
+    
+######################################################################################   
 #Opcion12
 def cargar_misiones(archivo="misiones_guardadas.txt"):
     misiones_cargadas = []
@@ -869,14 +937,16 @@ def cargar_misiones(archivo="misiones_guardadas.txt"):
         print(f"Se produjo un error al cargar las misiones: {e}")
     
     return misiones_cargadas
-#Aqui definiremos el menu principal
+######################################################################################
+#Aqui definiremos el menu principal y toda la interaccion del programa
+
 misiones = [] 
 def menu():
     while True:
         global misiones
         print("**************************************************")
         print("**************************************************")
-        print("***************** STAR WAR ***********************")
+        print("***************** STAR WARS **********************")
         print("**************** METROPEDIA **********************")
         print("**************************************************")
         print("**************************************************")
@@ -920,15 +990,15 @@ def menu():
                 print("Espere un poco por favor...")
                 obtener_personajes_por_planeta(client)
                 graficar_personajes_por_planeta()
-                # opcion_5(client)
+                # opcion_5(client) #crea el csv pero no pudimos graficarlo
                 menu()
             elif opcion=="6":
-                datos_naves = obtener_datos_naves(client)
-                graficar_caracteristicas_naves(datos_naves)
+                print("Espere un poco por favor...")
+                graficar_caracteristicas_naves()
                 menu()
             elif opcion=="7":
                 print("Espere un poco por favor...")
-                mostrar_estadisticas_naves(client)
+                mostrar_estadisticas_naves()
                 menu()
             elif opcion=="8":
                 mision = crear_mision()
@@ -959,7 +1029,7 @@ def menu():
                     print("No se cargaron nuevas misiones.")
                 menu()
             elif opcion=="13":
-                print("Saliendo del metropedia...Vuelva pronto")
+                print("Saliendo de metropedia...Vuelva pronto")
                 exit()
             else:
                 print("Debe seleccionar un numero del 1 al 10, vuelva a intentar")
@@ -969,5 +1039,6 @@ def menu():
             menu()
         
 # Crear un cliente SWAPI
-client = Conexion() 
+client = Conexion()
+#llamamos al menu
 menu()
